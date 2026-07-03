@@ -1,17 +1,29 @@
-const store = new Map();
+const  {createClient} = require('redis');
 
-function get(key) {
-    return store.get(key) || null;
+const redisClient = createClient({
+    url: process.env.REDIS_URL
+});
+redisClient.on("error", (err) => console.log('Redis Error: ', err));
+
+async function connect() {
+    await redisClient.connect();
 }
 
-function markProcessing(key) {
-    store.set(key, { status: 'PROCESSING', statusCode: null, responseBody : null });
+async function get(key) {
+    const raw = await redisClient.get(`idempotency:${key}`);
+    return raw ? JSON.parse(raw) : null;
 }
 
-function markCompleted(key, statusCode, responseBody) {
-    store.set(key, { status: 'COMPLETED', statusCode, responseBody});
+async function markProcessing(key) {
+    const value = JSON.stringify({status: 'PROCESSING', statusCode: null, responseBody: null});
+    await redisClient.set(`idempotency:${key}`, value, {EX: 86400});
+}
+
+async function markCompleted(key, statusCode, responseBody) {
+    const value = JSON.stringify({status: 'COMPLETED', statusCode, responseBody});
+    await redisClient.set(`idempotency:${key}`, value, {EX: 86400});
 }
 
 module.exports = {
-    get, markProcessing, markCompleted
+    connect,get, markProcessing, markCompleted
 };

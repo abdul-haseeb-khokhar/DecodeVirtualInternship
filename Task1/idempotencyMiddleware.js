@@ -1,6 +1,6 @@
 const idempotencyStore = require('./idempotencyStore');
 
-function idempotency(req, res, next) {
+async function idempotency(req, res, next) {
     console.log('Idempotency middleware is running');
     const key = req.headers['idempotency-key'];
 
@@ -8,7 +8,7 @@ function idempotency(req, res, next) {
         return res.status(400).json({message: 'Idempotency key is required'});
     }
 
-    const existing = idempotencyStore.get(key);
+    const existing = await idempotencyStore.get(key);
 
     if(existing) {
         if(existing.status === 'COMPLETED') {
@@ -18,7 +18,7 @@ function idempotency(req, res, next) {
         return res.status(409).json({message: "Request is already being processed"});
     }
 
-    idempotencyStore.markProcessing(key);
+    await idempotencyStore.markProcessing(key);
     req.idempotencyKey = key;
 
     next();

@@ -11,7 +11,7 @@ app.use(express.json());
 let orderid = 0;
 const orders = [];
 
-app.post('/orders', idempotency, (req, res) => {
+app.post('/orders', idempotency,async (req, res) => {
     console.log('Post order is running');
     orderid++;
 
@@ -24,9 +24,9 @@ app.post('/orders', idempotency, (req, res) => {
 
     orders.push(order);
 
-    const responseBody = {message: 'Order created successfully', order};
+    const responseBody = { message: 'Order created successfully', order };
 
-    idempotencyStore.markCompleted(req.idempotencyKey, 201, responseBody);
+    await idempotencyStore.markCompleted(req.idempotencyKey, 201, responseBody);
 
     res.status(201).json(responseBody);
 
@@ -37,6 +37,12 @@ app.get('/orders', (req, res) => {
     res.status(200).json(orders);
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Server is running on port ${process.env.PORT}`);
-})
+async function startServer() {
+    await idempotencyStore.connect();
+    app.listen(process.env.PORT, () => {
+        console.log(`Server is running on
+    port ${process.env.PORT}`);
+    });
+}
+
+startServer();
