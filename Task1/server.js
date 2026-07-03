@@ -24,7 +24,9 @@ app.post('/orders', idempotency,async (req, res) => {
 
     orders.push(order);
 
-    const responseBody = { message: 'Order created successfully', order };
+    const responseBody = { message: 'Order created successfully',
+        order,
+        instance: `PID ${process.pid} on port ${process.env.PORT}` };
 
     await idempotencyStore.markCompleted(req.idempotencyKey, 201, responseBody);
 
@@ -40,8 +42,7 @@ app.get('/orders', (req, res) => {
 async function startServer() {
     await idempotencyStore.connect();
     app.listen(process.env.PORT, () => {
-        console.log(`Server is running on
-    port ${process.env.PORT}`);
+        console.log(`Server is running on port ${process.env.PORT}`);
     });
 }
 
